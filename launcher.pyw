@@ -182,9 +182,10 @@ class AppLauncher(QWidget):
 
     def populate_apps(self):
         self.tree.clear()
-        for entry in self.config.get("apps", []):
-            if isinstance(entry, dict):
-                if "folder" in entry:
+
+        def add_items(parent, entries):
+            for entry in entries:
+                if isinstance(entry, dict) and "folder" in entry:
                     folder_item = QTreeWidgetItem([entry["folder"]])
                     folder_item.setExpanded(True)
                     folder_item.setToolTip(0, f"Folder: {entry['folder']}")
@@ -192,36 +193,25 @@ class AppLauncher(QWidget):
                     folder_icon_path = entry.get("icon")
                     if folder_icon_path and os.path.exists(folder_icon_path):
                         folder_item.setIcon(0, QIcon(folder_icon_path))
-                    for app in entry.get("apps", []):
-                        if isinstance(app, dict):
-                            app_item = QTreeWidgetItem([app.get("name", "Unnamed")])
-                            app_item.setData(0, Qt.UserRole, app.get("command", app.get("name", "")))
-                            app_item.setToolTip(0, app.get("command", ""))
-                            # Set app icon if present
-                            icon_path = app.get("icon")
-                            if icon_path and os.path.exists(icon_path):
-                                app_item.setIcon(0, QIcon(icon_path))
-                            folder_item.addChild(app_item)
-                        else:
-                            app_item = QTreeWidgetItem([str(app)])
-                            app_item.setData(0, Qt.UserRole, str(app))
-                            folder_item.addChild(app_item)
-                    self.tree.addTopLevelItem(folder_item)
-                else:
+                    add_items(folder_item, entry.get("apps", []))
+                    parent.addChild(folder_item)
+                elif isinstance(entry, dict):
                     app_name = entry.get("name", str(entry))
                     app_cmd = entry.get("command", app_name)
                     app_item = QTreeWidgetItem([app_name])
                     app_item.setData(0, Qt.UserRole, app_cmd)
                     app_item.setToolTip(0, app_cmd)
-                    # Set app icon if present
                     icon_path = entry.get("icon")
                     if icon_path and os.path.exists(icon_path):
                         app_item.setIcon(0, QIcon(icon_path))
-                    self.tree.addTopLevelItem(app_item)
-            else:
-                app_item = QTreeWidgetItem([str(entry)])
-                app_item.setData(0, Qt.UserRole, str(entry))
-                self.tree.addTopLevelItem(app_item)
+                    parent.addChild(app_item)
+                else:
+                    app_item = QTreeWidgetItem([str(entry)])
+                    app_item.setData(0, Qt.UserRole, str(entry))
+                    parent.addChild(app_item)
+
+        root = self.tree.invisibleRootItem()
+        add_items(root, self.config.get("apps", []))
 
     def filter_apps(self, text):
         text = text.lower()
@@ -277,7 +267,7 @@ class ConfigEditor(QWidget):
 
         # Tree to show structure
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Name", "Command/Folder"])
+        self.tree.setHeaderLabels(["Name", "Command/Folder", "Icon"])
         self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tree.itemClicked.connect(self.on_tree_item_clicked)
         layout.addWidget(self.tree)
@@ -290,6 +280,12 @@ class ConfigEditor(QWidget):
         self.command_edit = QLineEdit()
         self.command_edit.setPlaceholderText("Command (leave blank for folder)")
         form_layout.addWidget(self.command_edit)
+        self.icon_edit = QLineEdit()
+        self.icon_edit.setPlaceholderText("Icon path (optional)")
+        form_layout.addWidget(self.icon_edit)
+        icon_btn = QPushButton("Choose Icon")
+        icon_btn.clicked.connect(self.choose_icon)
+        form_layout.addWidget(icon_btn)
         layout.addLayout(form_layout)
 
         # Buttons
@@ -314,77 +310,139 @@ class ConfigEditor(QWidget):
         self.config = load_config()
         self.reload_tree()
 
+    def choose_icon(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Choose Icon", "", "Images (*.png *.ico *.jpg *.bmp)")
+        if path:
+            self.icon_edit.setText(path)
+
     def reload_tree(self):
         self.tree.clear()
-        for entry in self.config.get("apps", []):
-            if isinstance(entry, dict) and "folder" in entry:
-                folder_item = QTreeWidgetItem([entry["folder"], ""])
-                folder_item.setData(0, Qt.UserRole, entry)
-                for app in entry.get("apps", []):
-                    app_item = QTreeWidgetItem([app.get("name", ""), app.get("command", "")])
-                    app_item.setData(0, Qt.UserRole, app)
-                    folder_item.addChild(app_item)
-                self.tree.addTopLevelItem(folder_item)
-            elif isinstance(entry, dict):
-                app_item = QTreeWidgetItem([entry.get("name", ""), entry.get("command", "")])
-                app_item.setData(0, Qt.UserRole, entry)
-                self.tree.addTopLevelItem(app_item)
-            else:
-                app_item = QTreeWidgetItem([str(entry), ""])
-                app_item.setData(0, Qt.UserRole, entry)
-                self.tree.addTopLevelItem(app_item)
+        def add_items(parent, entries):
+            for entry in entries:
+                if isinstance(entry, dict) and "folder" in entry:
+                    folder_item = QTreeWidgetItem([entry["folder"], "", entry.get("icon", "")])
+                    folder_item.setData(0, Qt.UserRole, entry)
+                    add_items(folder_item, entry.get("apps", []))
+                    parent.addChild(folder_item)
+                elif isinstance(entry, dict):
+                    app_item = QTreeWidgetItem([entry.get("name", ""), entry.get("command", ""), entry.get("icon", "")])
+                    app_item.setData(0, Qt.UserRole, entry)
+                    parent.addChild(app_item)
+                else:
+                    app_item = QTreeWidgetItem([str(entry), "", ""])
+                    app_item.setData(0, Qt.UserRole, entry)
+                    parent.addChild(app_item)
+        root = self.tree.invisibleRootItem()
+        add_items(root, self.config.get("apps", []))
         self.name_edit.clear()
         self.command_edit.clear()
-
-    def reload_from_disk(self):
-        self.config = load_config()
-        self.reload_tree()
+        self.icon_edit.clear()
 
     def on_tree_item_clicked(self, item):
         data = item.data(0, Qt.UserRole)
         if isinstance(data, dict):
             self.name_edit.setText(data.get("name", data.get("folder", "")))
             self.command_edit.setText(data.get("command", ""))
+            self.icon_edit.setText(data.get("icon", ""))
         else:
             self.name_edit.setText(str(data))
             self.command_edit.clear()
+            self.icon_edit.clear()
 
     def add_app(self):
         name = self.name_edit.text().strip()
         command = self.command_edit.text().strip()
+        icon = self.icon_edit.text().strip()
         if not name or not command:
             QMessageBox.warning(self, "Input Error", "App name and command required.")
             return
         app = {"name": name, "command": command}
+        if icon:
+            app["icon"] = icon
         selected = self.tree.currentItem()
-        # Check if selected is a folder (by data, not just by children)
         if selected:
             data = selected.data(0, Qt.UserRole)
             if isinstance(data, dict) and "folder" in data:
-                # Add to this folder
-                for entry in self.config["apps"]:
-                    if isinstance(entry, dict) and entry.get("folder") == data["folder"]:
-                        entry.setdefault("apps", []).append(app)
-                        break
+                self._add_app_recursive(self.config["apps"], data["folder"], app)
                 self.reload_tree()
+                self._select_folder_by_name(data["folder"])
                 return
-        # Otherwise, add as top-level app
         self.config.setdefault("apps", []).append(app)
         self.reload_tree()
 
+    def _add_app_recursive(self, entries, folder_name, app):
+        for entry in entries:
+            if isinstance(entry, dict) and entry.get("folder") == folder_name:
+                entry.setdefault("apps", []).append(app)
+                return True
+            if isinstance(entry, dict) and "apps" in entry:
+                if self._add_app_recursive(entry["apps"], folder_name, app):
+                    return True
+        return False
+
     def add_folder(self):
         name = self.name_edit.text().strip()
+        icon = self.icon_edit.text().strip()
         if not name:
             QMessageBox.warning(self, "Input Error", "Folder name required.")
             return
-        # Prevent duplicate folder names
-        for entry in self.config["apps"]:
-            if isinstance(entry, dict) and entry.get("folder") == name:
-                QMessageBox.warning(self, "Input Error", "Folder already exists.")
-                return
+        selected = self.tree.currentItem()
         folder = {"folder": name, "apps": []}
+        if icon:
+            folder["icon"] = icon
+
+        if selected:
+            data = selected.data(0, Qt.UserRole)
+            if isinstance(data, dict) and "folder" in data:
+                # Prevent duplicate subfolder
+                if self._folder_exists_recursive(data.get("apps", []), name):
+                    QMessageBox.warning(self, "Input Error", "Folder already exists in this location.")
+                    return
+                # Recursively add folder to the correct subfolder
+                if self._add_folder_recursive(self.config["apps"], data["folder"], folder):
+                    self.reload_tree()
+                    self._select_folder_by_name(name)
+                    return
+
+        # Prevent duplicate top-level folder
+        if self._folder_exists_recursive(self.config["apps"], name):
+            QMessageBox.warning(self, "Input Error", "Folder already exists.")
+            return
         self.config.setdefault("apps", []).append(folder)
         self.reload_tree()
+        self._select_folder_by_name(name)
+
+    def _add_folder_recursive(self, entries, parent_folder_name, folder_to_add):
+        for entry in entries:
+            if isinstance(entry, dict) and entry.get("folder") == parent_folder_name:
+                entry.setdefault("apps", []).append(folder_to_add)
+                return True
+            if isinstance(entry, dict) and "apps" in entry:
+                if self._add_folder_recursive(entry["apps"], parent_folder_name, folder_to_add):
+                    return True
+        return False
+
+    def _folder_exists_recursive(self, entries, name):
+        for entry in entries:
+            if isinstance(entry, dict) and entry.get("folder") == name:
+                return True
+            if isinstance(entry, dict) and "apps" in entry:
+                if self._folder_exists_recursive(entry["apps"], name):
+                    return True
+        return False
+
+    def _select_folder_by_name(self, name):
+        def search(item):
+            for i in range(item.childCount()):
+                child = item.child(i)
+                data = child.data(0, Qt.UserRole)
+                if isinstance(data, dict) and data.get("folder") == name:
+                    self.tree.setCurrentItem(child)
+                    return True
+                if search(child):
+                    return True
+            return False
+        search(self.tree.invisibleRootItem())
 
     def remove_selected(self):
         selected = self.tree.currentItem()
@@ -419,6 +477,10 @@ class ConfigEditor(QWidget):
                 self.launcher.on_config_changed()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to save config:\n{e}")
+
+    def reload_from_disk(self):
+        self.config = load_config()
+        self.reload_tree()
 
     def closeEvent(self, event):
         event.ignore()
