@@ -5,8 +5,7 @@
     {
       "folder": "Utilities",
       "apps": [
-        {"name": "Command Prompt", "command": "cmd.exe"},
-        {"name": "PowerShell", "command": "powershell.exe"}
+        {"name": "Command Prompt", "command": "cmd.exe"}
       ]
     }
   ]

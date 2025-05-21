@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import subprocess
+import keyboard
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QTextEdit, QLineEdit, QListWidget, QListWidgetItem, QTreeWidget,
@@ -227,14 +228,11 @@ def main():
     launcher = AppLauncher()
     editor = ConfigEditor()
 
-    # You can choose to show both for debugging:
-    # launcher.show()
-    # editor.show()
-
-    # For normal use, just launcher window is shown:
+    # Show launcher by default
     launcher.show()
 
-    # To open editor manually (e.g. later), you can add a hotkey or menu (not included here)
+    # Add hotkey Ctrl+Space to toggle launcher visibility
+    keyboard.add_hotkey("ctrl+space", lambda: launcher.setVisible(not launcher.isVisible()))
 
     sys.exit(app.exec())
 
