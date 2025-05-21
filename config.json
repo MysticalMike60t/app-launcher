@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"name": "Development",
+			"apps": [
+				{
+					"name": "VS Code",
+					"icon": "vscode.png",
+					"path": "C:/Program Files/Microsoft VS Code/Code.exe"
+				},
+				{
+					"name": "Terminal",
+					"icon": "terminal.png",
+					"path": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+				}
+			]
+		},
+		{
+			"name": "Browsers",
+			"apps": [
+				{
+					"name": "Edge",
+					"icon": "edge.png",
+					"path": "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+				}
+			]
+		}
+	]
+}
