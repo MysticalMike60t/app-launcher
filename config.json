@@ -1,12 +1,24 @@
 {
-  "apps": [
-    {"name": "Notepad", "command": "notepad.exe", "icon": "icons/notepad.png"},
-    {"name": "Calculator", "command": "calc.exe", "icon": "icons/notepad.png"},
-    {
-      "folder": "Utilities",
-      "apps": [
-        {"name": "Command Prompt", "command": "cmd.exe", "icon": "icons/notepad.png"}
-      ]
-    }
-  ]
+    "apps": [
+        {
+            "name": "Notepad",
+            "command": "notepad.exe",
+            "icon": "icons/notepad.png"
+        },
+        {
+            "name": "Calculator (Windows)",
+            "command": "calc.exe",
+            "icon": "icons/notepad.png"
+        },
+        {
+            "folder": "Utilities",
+            "apps": [
+                {
+                    "name": "Command Prompt",
+                    "command": "cmd.exe",
+                    "icon": "icons/notepad.png"
+                }
+            ]
+        }
+    ]
 }

@@ -6,7 +6,7 @@ import keyboard
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QTextEdit, QLineEdit, QListWidget, QListWidgetItem, QTreeWidget,
-    QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog
+    QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog, QMenu, QStatusBar
 )
 from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent
 from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication
@@ -49,6 +49,36 @@ def launch_app(command):
     except Exception as e:
         QMessageBox.warning(None, "Launch Error", f"Failed to launch {command}:\n{e}")
 
+class TitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(36)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.title = QLabel("Modern App Launcher")
+        self.title.setStyleSheet("color: white; font-weight: bold; font-size: 15px;")
+        layout.addWidget(self.title)
+        layout.addStretch()
+        self.min_btn = QPushButton("–")
+        self.min_btn.setFixedSize(32, 28)
+        self.min_btn.setStyleSheet("background: transparent; color: white; font-size: 18px;")
+        self.min_btn.clicked.connect(parent.showMinimized)
+        layout.addWidget(self.min_btn)
+        self.close_btn = QPushButton("×")
+        self.close_btn.setFixedSize(32, 28)
+        self.close_btn.setStyleSheet("background: transparent; color: white; font-size: 18px;")
+        self.close_btn.clicked.connect(parent.close)
+        layout.addWidget(self.close_btn)
+        self.setStyleSheet("background: rgba(30,30,30,0.95); border-top-left-radius: 12px; border-top-right-radius: 12px;")
+
+    def mousePressEvent(self, event):
+        self.offset = event.globalPosition().toPoint() - self.parent.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.parent.move(event.globalPosition().toPoint() - self.offset)
+
 class AppLauncher(QWidget):
     def __init__(self):
         super().__init__()
@@ -58,27 +88,72 @@ class AppLauncher(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyle()
 
-        # Layouts
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(15, 15, 15, 15)
-        main_layout.setSpacing(10)
-        self.setLayout(main_layout)
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Custom title bar
+        self.title_bar = TitleBar(self)
+        main_layout.addWidget(self.title_bar)
+
+        # Central widget layout
+        central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(15, 10, 15, 10)
+        central_layout.setSpacing(10)
+        main_layout.addWidget(central, 1)
+
+        # Set a solid background for the central widget
+        central.setStyleSheet("background: #232323; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;")
 
         # Search bar
+        search_layout = QHBoxLayout()
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search apps and folders...")
         self.search_bar.textChanged.connect(self.filter_apps)
-        main_layout.addWidget(self.search_bar)
+        self.search_bar.setStyleSheet("padding: 6px; border-radius: 8px; background: #232323; color: white;")
+        search_layout.addWidget(self.search_bar)
+
+        # Config editor button
+        self.config_btn = QPushButton("⚙")
+        self.config_btn.setFixedSize(32, 32)
+        self.config_btn.setStyleSheet("background: #232323; color: white; border-radius: 8px; font-size: 18px;")
+        self.config_btn.setToolTip("Open Config Editor")
+        self.config_btn.clicked.connect(self.open_config_editor)
+        search_layout.addWidget(self.config_btn)
+        central_layout.addLayout(search_layout)
 
         # Tree widget to show folders/apps
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
         self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tree.itemDoubleClicked.connect(self.launch_item)
-        main_layout.addWidget(self.tree, 1)
+        self.tree.setStyleSheet("""
+            QTreeWidget {
+                background: #232323;
+                color: white;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+            QTreeWidget::item:selected {
+                background: #3256a8;
+                color: white;
+            }
+            QTreeWidget::item:hover {
+                background: #2a2a2a;
+            }
+        """)
+        # Remove context menu for editing/removing
+        self.tree.setContextMenuPolicy(Qt.NoContextMenu)
+        self.tree.setDragDropMode(QAbstractItemView.NoDragDrop)
+        central_layout.addWidget(self.tree, 1)
 
-        # Buttons for add/edit/remove (optional, could be added later)
-        # ...
+        # Remove Add App/Folder buttons from launcher UI
+        # Remove status bar if you want a cleaner look, or keep for launch feedback
+        self.status = QStatusBar()
+        self.status.setStyleSheet("background: #232323; color: #aaa; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;")
+        main_layout.addWidget(self.status)
 
         self.config = load_config()
         self.populate_apps()
@@ -135,6 +210,7 @@ class AppLauncher(QWidget):
                 if "folder" in entry:
                     folder_item = QTreeWidgetItem([entry["folder"]])
                     folder_item.setExpanded(True)
+                    folder_item.setToolTip(0, f"Folder: {entry['folder']}")
                     # Set folder icon if present
                     folder_icon_path = entry.get("icon")
                     if folder_icon_path and os.path.exists(folder_icon_path):
@@ -143,6 +219,7 @@ class AppLauncher(QWidget):
                         if isinstance(app, dict):
                             app_item = QTreeWidgetItem([app.get("name", "Unnamed")])
                             app_item.setData(0, Qt.UserRole, app.get("command", app.get("name", "")))
+                            app_item.setToolTip(0, app.get("command", ""))
                             # Set app icon if present
                             icon_path = app.get("icon")
                             if icon_path and os.path.exists(icon_path):
@@ -158,6 +235,7 @@ class AppLauncher(QWidget):
                     app_cmd = entry.get("command", app_name)
                     app_item = QTreeWidgetItem([app_name])
                     app_item.setData(0, Qt.UserRole, app_cmd)
+                    app_item.setToolTip(0, app_cmd)
                     # Set app icon if present
                     icon_path = entry.get("icon")
                     if icon_path and os.path.exists(icon_path):
@@ -192,11 +270,17 @@ class AppLauncher(QWidget):
         command = item.data(0, Qt.UserRole)
         if command:
             launch_app(command)
+            self.status.showMessage(f"Launched: {item.text(0)}", 2000)
 
     def on_config_changed(self):
         # Reload config and refresh UI
         self.config = load_config()
         self.populate_apps()
+        self.status.showMessage("Config reloaded", 2000)
+
+    def open_config_editor(self):
+        self.editor = ConfigEditor()
+        self.editor.show()
 
 class ConfigEditor(QWidget):
     def __init__(self):
