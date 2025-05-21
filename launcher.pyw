@@ -275,37 +275,154 @@ class ConfigEditor(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.editor = QTextEdit()
-        self.editor.setText(json.dumps(load_config(), indent=4))
-        layout.addWidget(self.editor)
+        # Tree to show structure
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["Name", "Command/Folder"])
+        self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tree.itemClicked.connect(self.on_tree_item_clicked)
+        layout.addWidget(self.tree)
 
+        # Edit fields
+        form_layout = QHBoxLayout()
+        self.name_edit = QLineEdit()
+        self.name_edit.setPlaceholderText("Name")
+        form_layout.addWidget(self.name_edit)
+        self.command_edit = QLineEdit()
+        self.command_edit.setPlaceholderText("Command (leave blank for folder)")
+        form_layout.addWidget(self.command_edit)
+        layout.addLayout(form_layout)
+
+        # Buttons
         btn_layout = QHBoxLayout()
-        layout.addLayout(btn_layout)
-
+        add_app_btn = QPushButton("Add App")
+        add_app_btn.clicked.connect(self.add_app)
+        btn_layout.addWidget(add_app_btn)
+        add_folder_btn = QPushButton("Add Folder")
+        add_folder_btn.clicked.connect(self.add_folder)
+        btn_layout.addWidget(add_folder_btn)
+        remove_btn = QPushButton("Remove Selected")
+        remove_btn.clicked.connect(self.remove_selected)
+        btn_layout.addWidget(remove_btn)
         save_btn = QPushButton("Save Config")
         save_btn.clicked.connect(self.save)
         btn_layout.addWidget(save_btn)
-
         reload_btn = QPushButton("Reload Config")
-        reload_btn.clicked.connect(self.reload)
+        reload_btn.clicked.connect(self.reload_from_disk)
         btn_layout.addWidget(reload_btn)
+        layout.addLayout(btn_layout)
+
+        self.config = load_config()
+        self.reload_tree()
+
+    def reload_tree(self):
+        self.tree.clear()
+        for entry in self.config.get("apps", []):
+            if isinstance(entry, dict) and "folder" in entry:
+                folder_item = QTreeWidgetItem([entry["folder"], ""])
+                folder_item.setData(0, Qt.UserRole, entry)
+                for app in entry.get("apps", []):
+                    app_item = QTreeWidgetItem([app.get("name", ""), app.get("command", "")])
+                    app_item.setData(0, Qt.UserRole, app)
+                    folder_item.addChild(app_item)
+                self.tree.addTopLevelItem(folder_item)
+            elif isinstance(entry, dict):
+                app_item = QTreeWidgetItem([entry.get("name", ""), entry.get("command", "")])
+                app_item.setData(0, Qt.UserRole, entry)
+                self.tree.addTopLevelItem(app_item)
+            else:
+                app_item = QTreeWidgetItem([str(entry), ""])
+                app_item.setData(0, Qt.UserRole, entry)
+                self.tree.addTopLevelItem(app_item)
+        self.name_edit.clear()
+        self.command_edit.clear()
+
+    def reload_from_disk(self):
+        self.config = load_config()
+        self.reload_tree()
+
+    def on_tree_item_clicked(self, item):
+        data = item.data(0, Qt.UserRole)
+        if isinstance(data, dict):
+            self.name_edit.setText(data.get("name", data.get("folder", "")))
+            self.command_edit.setText(data.get("command", ""))
+        else:
+            self.name_edit.setText(str(data))
+            self.command_edit.clear()
+
+    def add_app(self):
+        name = self.name_edit.text().strip()
+        command = self.command_edit.text().strip()
+        if not name or not command:
+            QMessageBox.warning(self, "Input Error", "App name and command required.")
+            return
+        app = {"name": name, "command": command}
+        selected = self.tree.currentItem()
+        # Check if selected is a folder (by data, not just by children)
+        if selected:
+            data = selected.data(0, Qt.UserRole)
+            if isinstance(data, dict) and "folder" in data:
+                # Add to this folder
+                for entry in self.config["apps"]:
+                    if isinstance(entry, dict) and entry.get("folder") == data["folder"]:
+                        entry.setdefault("apps", []).append(app)
+                        break
+                self.reload_tree()
+                return
+        # Otherwise, add as top-level app
+        self.config.setdefault("apps", []).append(app)
+        self.reload_tree()
+
+    def add_folder(self):
+        name = self.name_edit.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Input Error", "Folder name required.")
+            return
+        # Prevent duplicate folder names
+        for entry in self.config["apps"]:
+            if isinstance(entry, dict) and entry.get("folder") == name:
+                QMessageBox.warning(self, "Input Error", "Folder already exists.")
+                return
+        folder = {"folder": name, "apps": []}
+        self.config.setdefault("apps", []).append(folder)
+        self.reload_tree()
+
+    def remove_selected(self):
+        selected = self.tree.currentItem()
+        if not selected:
+            return
+        parent = selected.parent()
+        if parent:
+            # Remove app from folder
+            folder_name = parent.text(0)
+            app_name = selected.text(0)
+            for entry in self.config["apps"]:
+                if isinstance(entry, dict) and entry.get("folder") == folder_name:
+                    entry["apps"] = [a for a in entry.get("apps", []) if a.get("name") != app_name]
+                    break
+        else:
+            # Remove top-level app or folder
+            name = selected.text(0)
+            to_remove = None
+            for entry in self.config["apps"]:
+                if (isinstance(entry, dict) and (entry.get("name") == name or entry.get("folder") == name)) or entry == name:
+                    to_remove = entry
+                    break
+            if to_remove:
+                self.config["apps"].remove(to_remove)
+        self.reload_tree()
+
+    def save(self):
+        try:
+            save_config(self.config)
+            QMessageBox.information(self, "Success", "Config saved!")
+            if self.launcher:
+                self.launcher.on_config_changed()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to save config:\n{e}")
 
     def closeEvent(self, event):
         event.ignore()
         self.hide()
-
-    def save(self):
-        try:
-            config = json.loads(self.editor.toPlainText())
-            save_config(config)
-            QMessageBox.information(self, "Success", "Config saved!")
-            if self.launcher:
-                self.launcher.on_config_changed()
-        except json.JSONDecodeError:
-            QMessageBox.warning(self, "Error", "Invalid JSON!")
-
-    def reload(self):
-        self.editor.setText(json.dumps(load_config(), indent=4))
 
 def main():
     app = QApplication(sys.argv)
