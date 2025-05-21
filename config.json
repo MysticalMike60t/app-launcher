@@ -1,11 +1,11 @@
 {
   "apps": [
-    {"name": "Notepad", "command": "notepad.exe"},
-    {"name": "Calculator", "command": "calc.exe"},
+    {"name": "Notepad", "command": "notepad.exe", "icon": "icons/notepad.png"},
+    {"name": "Calculator", "command": "calc.exe", "icon": "icons/notepad.png"},
     {
       "folder": "Utilities",
       "apps": [
-        {"name": "Command Prompt", "command": "cmd.exe"}
+        {"name": "Command Prompt", "command": "cmd.exe", "icon": "icons/notepad.png"}
       ]
     }
   ]

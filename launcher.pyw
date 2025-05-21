@@ -131,18 +131,24 @@ class AppLauncher(QWidget):
     def populate_apps(self):
         self.tree.clear()
         for entry in self.config.get("apps", []):
-            # if entry is a dict
             if isinstance(entry, dict):
                 if "folder" in entry:
                     folder_item = QTreeWidgetItem([entry["folder"]])
                     folder_item.setExpanded(True)
+                    # Set folder icon if present
+                    folder_icon_path = entry.get("icon")
+                    if folder_icon_path and os.path.exists(folder_icon_path):
+                        folder_item.setIcon(0, QIcon(folder_icon_path))
                     for app in entry.get("apps", []):
                         if isinstance(app, dict):
                             app_item = QTreeWidgetItem([app.get("name", "Unnamed")])
                             app_item.setData(0, Qt.UserRole, app.get("command", app.get("name", "")))
+                            # Set app icon if present
+                            icon_path = app.get("icon")
+                            if icon_path and os.path.exists(icon_path):
+                                app_item.setIcon(0, QIcon(icon_path))
                             folder_item.addChild(app_item)
                         else:
-                            # fallback if app is string
                             app_item = QTreeWidgetItem([str(app)])
                             app_item.setData(0, Qt.UserRole, str(app))
                             folder_item.addChild(app_item)
@@ -152,9 +158,12 @@ class AppLauncher(QWidget):
                     app_cmd = entry.get("command", app_name)
                     app_item = QTreeWidgetItem([app_name])
                     app_item.setData(0, Qt.UserRole, app_cmd)
+                    # Set app icon if present
+                    icon_path = entry.get("icon")
+                    if icon_path and os.path.exists(icon_path):
+                        app_item.setIcon(0, QIcon(icon_path))
                     self.tree.addTopLevelItem(app_item)
             else:
-                # if entry is just a string, handle it
                 app_item = QTreeWidgetItem([str(entry)])
                 app_item.setData(0, Qt.UserRole, str(entry))
                 self.tree.addTopLevelItem(app_item)
