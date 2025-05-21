@@ -1,27 +1,12 @@
 {
-  "folders": [
+  "apps": [
+    {"name": "Notepad", "command": "notepad.exe"},
+    {"name": "Calculator", "command": "calc.exe"},
     {
-      "name": "Browsers",
+      "folder": "Utilities",
       "apps": [
-        {
-          "name": "Firefox",
-          "path": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
-          "icon": "icons/firefox.png"
-        },
-        {
-          "name": "Chrome",
-          "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-          "icon": "icons/chrome.png"
-        }
-      ]
-    },
-    {
-      "name": "Tools",
-      "apps": [
-        {
-          "name": "Notepad++",
-          "path": "C:\\Program Files\\Notepad++\\notepad++.exe"
-        }
+        {"name": "Command Prompt", "command": "cmd.exe"},
+        {"name": "PowerShell", "command": "powershell.exe"}
       ]
     }
   ]
