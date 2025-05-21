@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QTextEdit, QLineEdit, QListWidget, QListWidgetItem, QTreeWidget,
     QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog, QMenu, QStatusBar
 )
-from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent
+from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer
 from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication
 
 CONFIG_PATH = "config.json"
@@ -49,42 +49,12 @@ def launch_app(command):
     except Exception as e:
         QMessageBox.warning(None, "Launch Error", f"Failed to launch {command}:\n{e}")
 
-class TitleBar(QWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.setFixedHeight(36)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.title = QLabel("Modern App Launcher")
-        self.title.setStyleSheet("color: white; font-weight: bold; font-size: 15px;")
-        layout.addWidget(self.title)
-        layout.addStretch()
-        self.min_btn = QPushButton("–")
-        self.min_btn.setFixedSize(32, 28)
-        self.min_btn.setStyleSheet("background: transparent; color: white; font-size: 18px;")
-        self.min_btn.clicked.connect(parent.showMinimized)
-        layout.addWidget(self.min_btn)
-        self.close_btn = QPushButton("×")
-        self.close_btn.setFixedSize(32, 28)
-        self.close_btn.setStyleSheet("background: transparent; color: white; font-size: 18px;")
-        self.close_btn.clicked.connect(parent.close)
-        layout.addWidget(self.close_btn)
-        self.setStyleSheet("background: rgba(30,30,30,0.95); border-top-left-radius: 12px; border-top-right-radius: 12px;")
-
-    def mousePressEvent(self, event):
-        self.offset = event.globalPosition().toPoint() - self.parent.frameGeometry().topLeft()
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.parent.move(event.globalPosition().toPoint() - self.offset)
-
 class AppLauncher(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Modern App Launcher")
         self.setFixedSize(480, 600)
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyle()
 
@@ -92,10 +62,6 @@ class AppLauncher(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        # Custom title bar
-        self.title_bar = TitleBar(self)
-        main_layout.addWidget(self.title_bar)
 
         # Central widget layout
         central = QWidget()
@@ -105,7 +71,7 @@ class AppLauncher(QWidget):
         main_layout.addWidget(central, 1)
 
         # Set a solid background for the central widget
-        central.setStyleSheet("background: #232323; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;")
+        central.setStyleSheet("background: #232323; border-radius: 12px;")
 
         # Search bar
         search_layout = QHBoxLayout()
@@ -144,22 +110,33 @@ class AppLauncher(QWidget):
                 background: #2a2a2a;
             }
         """)
-        # Remove context menu for editing/removing
         self.tree.setContextMenuPolicy(Qt.NoContextMenu)
         self.tree.setDragDropMode(QAbstractItemView.NoDragDrop)
         central_layout.addWidget(self.tree, 1)
 
-        # Remove Add App/Folder buttons from launcher UI
-        # Remove status bar if you want a cleaner look, or keep for launch feedback
-        self.status = QStatusBar()
-        self.status.setStyleSheet("background: #232323; color: #aaa; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;")
-        main_layout.addWidget(self.status)
+        # Custom status label inside central widget for rounded corners
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: #aaa; font-size: 12px; padding: 4px 0 0 4px;")
+        central_layout.addWidget(self.status_label)
 
         self.config = load_config()
         self.populate_apps()
 
         self.watcher = QFileSystemWatcher([CONFIG_PATH])
         self.watcher.fileChanged.connect(self.on_config_changed)
+
+    def showEvent(self, event):
+        # Position the window just above the taskbar, centered
+        screen = QGuiApplication.primaryScreen().geometry()
+        taskbar_height = 48  # Typical Windows taskbar height; adjust if needed
+        x = screen.x() + (screen.width() - self.width()) // 2
+        y = screen.y() + screen.height() - self.height() - taskbar_height + 8
+        self.move(x, y)
+        super().showEvent(event)
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
     def setStyle(self):
         # Modern dark translucent style with blur effect
@@ -270,21 +247,29 @@ class AppLauncher(QWidget):
         command = item.data(0, Qt.UserRole)
         if command:
             launch_app(command)
-            self.status.showMessage(f"Launched: {item.text(0)}", 2000)
+            self.show_status(f"Launched: {item.text(0)}", 2000)
 
     def on_config_changed(self):
-        # Reload config and refresh UI
         self.config = load_config()
         self.populate_apps()
-        self.status.showMessage("Config reloaded", 2000)
+        self.show_status("Config reloaded", 2000)
 
     def open_config_editor(self):
-        self.editor = ConfigEditor()
+        if not hasattr(self, 'editor') or self.editor is None:
+            self.editor = ConfigEditor(self)
         self.editor.show()
+        self.editor.raise_()
+        self.editor.activateWindow()
+
+    def show_status(self, msg, timeout=2000):
+        self.status_label.setText(msg)
+        if timeout:
+            QTimer.singleShot(timeout, lambda: self.status_label.setText(""))
 
 class ConfigEditor(QWidget):
-    def __init__(self):
+    def __init__(self, launcher=None):
         super().__init__()
+        self.launcher = launcher
         self.setWindowTitle("Launcher Config Editor")
         self.setFixedSize(600, 500)
         layout = QVBoxLayout()
@@ -305,11 +290,17 @@ class ConfigEditor(QWidget):
         reload_btn.clicked.connect(self.reload)
         btn_layout.addWidget(reload_btn)
 
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
+
     def save(self):
         try:
             config = json.loads(self.editor.toPlainText())
             save_config(config)
             QMessageBox.information(self, "Success", "Config saved!")
+            if self.launcher:
+                self.launcher.on_config_changed()
         except json.JSONDecodeError:
             QMessageBox.warning(self, "Error", "Invalid JSON!")
 
@@ -319,12 +310,11 @@ class ConfigEditor(QWidget):
 def main():
     app = QApplication(sys.argv)
     launcher = AppLauncher()
-    editor = ConfigEditor()
+    editor = launcher.open_config_editor  # Not used directly, but keeps reference
 
-    # Show launcher by default
     launcher.show()
 
-    # Add hotkey Ctrl+Space to toggle launcher visibility
+    # Hotkey toggles launcher visibility
     keyboard.add_hotkey("ctrl+space", lambda: launcher.setVisible(not launcher.isVisible()))
 
     sys.exit(app.exec())
