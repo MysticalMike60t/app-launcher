@@ -1,29 +1,28 @@
 {
-	"folders": [
-		{
-			"name": "Development",
-			"apps": [
-				{
-					"name": "VS Code",
-					"icon": "vscode.png",
-					"path": "C:/Program Files/Microsoft VS Code/Code.exe"
-				},
-				{
-					"name": "Terminal",
-					"icon": "terminal.png",
-					"path": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
-				}
-			]
-		},
-		{
-			"name": "Browsers",
-			"apps": [
-				{
-					"name": "Edge",
-					"icon": "edge.png",
-					"path": "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-				}
-			]
-		}
-	]
+  "folders": [
+    {
+      "name": "Browsers",
+      "apps": [
+        {
+          "name": "Firefox",
+          "path": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+          "icon": "icons/firefox.png"
+        },
+        {
+          "name": "Chrome",
+          "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "icon": "icons/chrome.png"
+        }
+      ]
+    },
+    {
+      "name": "Tools",
+      "apps": [
+        {
+          "name": "Notepad++",
+          "path": "C:\\Program Files\\Notepad++\\notepad++.exe"
+        }
+      ]
+    }
+  ]
 }
