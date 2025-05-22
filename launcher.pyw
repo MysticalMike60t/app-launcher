@@ -139,8 +139,9 @@ class AppLauncher(QWidget):
 
         # Add tray icon
         self.tray_icon = QSystemTrayIcon(self)
-        tray_icon_path = resource_path("icon.ico") if os.path.exists(resource_path("icon.ico")) else None
-        self.tray_icon.setIcon(QIcon(tray_icon_path) if tray_icon_path else self.windowIcon())
+        tray_icon_path = resource_path("icon.ico")
+        print("Tray icon path:", tray_icon_path, "Exists:", os.path.exists(tray_icon_path))
+        self.tray_icon.setIcon(QIcon(tray_icon_path) if os.path.exists(tray_icon_path) else self.windowIcon())
         self.tray_icon.setToolTip("App Launcher")
 
         tray_menu = QMenu()
