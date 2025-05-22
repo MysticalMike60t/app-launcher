@@ -119,18 +119,25 @@ class ConfigEditor(QWidget):
         selected = self.tree.currentItem()
         if selected:
             data = selected.data(0, Qt.UserRole)
-            # Edit existing app
-            if isinstance(data, dict) and "name" in data:
-                data["name"] = name
-                data["command"] = command
-                if icon:
-                    data["icon"] = icon
-                else:
-                    data.pop("icon", None)
-                self.reload_tree()
-                return
-            # ...existing code for adding to folder...
-        # ...existing code for adding new app...
+            # If a folder is selected, add to that folder in self.config
+            if isinstance(data, dict) and "folder" in data:
+                folder_name = data["folder"]
+                if self._add_app_recursive(self.config["apps"], folder_name, app):
+                    self.reload_tree()
+                    return
+            # If an app is selected, add as sibling (to parent folder)
+            elif isinstance(data, dict) and "name" in data:
+                parent = selected.parent()
+                if parent:
+                    parent_data = parent.data(0, Qt.UserRole)
+                    if isinstance(parent_data, dict) and "folder" in parent_data:
+                        folder_name = parent_data["folder"]
+                        if self._add_app_recursive(self.config["apps"], folder_name, app):
+                            self.reload_tree()
+                            return
+        # Otherwise, add as top-level app
+        self.config.setdefault("apps", []).append(app)
+        self.reload_tree()
 
     def _add_app_recursive(self, entries, folder_name, app):
         for entry in entries:
@@ -241,20 +248,25 @@ class ConfigEditor(QWidget):
         config = []
         for i in range(parent_item.childCount()):
             child = parent_item.child(i)
-            if child.childCount() > 0:
+            data = child.data(0, Qt.UserRole)
+            # If it's a folder (has "folder" key in data), save as folder
+            if isinstance(data, dict) and "folder" in data:
                 folder = {
-                    "folder": child.text(0),
-                    "icon": child.text(2),
+                    "folder": data.get("folder", child.text(0)),
                     "apps": self._tree_to_config(child)
                 }
+                icon = data.get("icon", child.text(2))
+                if icon:
+                    folder["icon"] = icon
                 config.append(folder)
             else:
                 app = {
                     "name": child.text(0),
                     "command": child.text(1)
                 }
-                if child.text(2):
-                    app["icon"] = child.text(2)
+                icon = child.text(2)
+                if icon:
+                    app["icon"] = icon
                 config.append(app)
         return config
 
