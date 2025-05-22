@@ -303,17 +303,28 @@ class ConfigEditor(QWidget):
                 new_name = self.name_edit.text().strip()
                 new_icon = self.icon_edit.text().strip()
                 data["folder"] = new_name
-                data["icon"] = new_icon
+                if new_icon:
+                    data["icon"] = new_icon
+                else:
+                    data.pop("icon", None)
+                # Update the tree item text
                 self.editing_item.setText(0, new_name)
                 self.editing_item.setText(2, new_icon)
+                # Update the data attached to the item
+                self.editing_item.setData(0, Qt.UserRole, data)
             else:
                 new_name = self.name_edit.text().strip()
                 new_command = self.command_edit.text().strip()
                 new_icon = self.icon_edit.text().strip()
                 data["name"] = new_name
                 data["command"] = new_command
-                data["icon"] = new_icon
+                if new_icon:
+                    data["icon"] = new_icon
+                else:
+                    data.pop("icon", None)
                 self.editing_item.setText(0, new_name)
                 self.editing_item.setText(1, new_command)
                 self.editing_item.setText(2, new_icon)
+                self.editing_item.setData(0, Qt.UserRole, data)
         self.editing_item = None
+        self.save()
