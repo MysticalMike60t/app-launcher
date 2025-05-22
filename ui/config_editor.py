@@ -6,6 +6,20 @@ from PySide6.QtCore import Qt
 from config import load_config, save_config
 
 
+class AppTreeWidget(QTreeWidget):
+    def dropEvent(self, event):
+        # Only block if dropping ON an app (not a folder)
+        target = self.itemAt(event.pos())
+        drop_indicator = self.dropIndicatorPosition()
+        if target and drop_indicator == QAbstractItemView.OnItem:
+            data = target.data(0, Qt.UserRole)
+            if not (isinstance(data, dict) and "folder" in data):
+                event.ignore()
+                return
+        # Allow drop if dropping between items or at root
+        super().dropEvent(event)
+
+
 class ConfigEditor(QWidget):
     def __init__(self, launcher=None):
         super().__init__()
@@ -15,7 +29,7 @@ class ConfigEditor(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.tree = QTreeWidget()
+        self.tree = AppTreeWidget()
         self.tree.setHeaderLabels(["Name", "Command/Folder", "Icon"])
         self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tree.setDragDropMode(QAbstractItemView.InternalMove)
@@ -52,6 +66,9 @@ class ConfigEditor(QWidget):
         reload_btn = QPushButton("Reload Config")
         reload_btn.clicked.connect(self.reload_from_disk)
         btn_layout.addWidget(reload_btn)
+        edit_btn = QPushButton("Edit Selected")
+        edit_btn.clicked.connect(self.edit_selected)
+        btn_layout.addWidget(edit_btn)
         layout.addLayout(btn_layout)
 
         self.config = load_config()
@@ -98,14 +115,18 @@ class ConfigEditor(QWidget):
         selected = self.tree.currentItem()
         if selected:
             data = selected.data(0, Qt.UserRole)
-            if isinstance(data, dict) and "folder" in data:
-                self._add_app_recursive(self.config["apps"], data["folder"], app)
+            # Edit existing app
+            if isinstance(data, dict) and "name" in data:
+                data["name"] = name
+                data["command"] = command
+                if icon:
+                    data["icon"] = icon
+                else:
+                    data.pop("icon", None)
                 self.reload_tree()
-                self._select_folder_by_name(data["folder"])
                 return
-
-        self.config.setdefault("apps", []).append(app)
-        self.reload_tree()
+            # ...existing code for adding to folder...
+        # ...existing code for adding new app...
 
     def _add_app_recursive(self, entries, folder_name, app):
         for entry in entries:
@@ -240,3 +261,18 @@ class ConfigEditor(QWidget):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+
+    def edit_selected(self):
+        selected = self.tree.currentItem()
+        if not selected:
+            return
+        data = selected.data(0, Qt.UserRole)
+        if isinstance(data, dict):
+            if "folder" in data:
+                self.name_edit.setText(data.get("folder", ""))
+                self.command_edit.clear()
+                self.icon_edit.setText(data.get("icon", ""))
+            else:
+                self.name_edit.setText(data.get("name", ""))
+                self.command_edit.setText(data.get("command", ""))
+                self.icon_edit.setText(data.get("icon", ""))
