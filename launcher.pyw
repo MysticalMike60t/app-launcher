@@ -7,10 +7,11 @@ import keyboard
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QTextEdit, QLineEdit, QListWidget, QListWidgetItem, QTreeWidget,
-    QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog, QMenu, QStatusBar
+    QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog, QMenu, QStatusBar,
+    QSystemTrayIcon
 )
 from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer
-from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication
+from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction
 
 APP_NAME = "AppLauncher"
 APPDATA_PATH = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), APP_NAME)
@@ -135,6 +136,29 @@ class AppLauncher(QWidget):
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #aaa; font-size: 12px; padding: 4px 0 0 4px;")
         central_layout.addWidget(self.status_label)
+
+        # Add tray icon
+        self.tray_icon = QSystemTrayIcon(self)
+        tray_icon_path = resource_path("icon.ico") if os.path.exists(resource_path("icon.ico")) else None
+        self.tray_icon.setIcon(QIcon(tray_icon_path) if tray_icon_path else self.windowIcon())
+        self.tray_icon.setToolTip("App Launcher")
+
+        tray_menu = QMenu()
+        open_editor_action = QAction("Open Config Editor", self)
+        open_editor_action.triggered.connect(self.open_config_editor)
+        tray_menu.addAction(open_editor_action)
+
+        show_launcher_action = QAction("Show Launcher", self)
+        show_launcher_action.triggered.connect(self.show_launcher_from_tray)
+        tray_menu.addAction(show_launcher_action)
+
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(self.quit_app)
+        tray_menu.addAction(quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.on_tray_activated)
+        self.tray_icon.show()
 
         self.config = load_config()
         self.populate_apps()
@@ -272,6 +296,19 @@ class AppLauncher(QWidget):
         self.status_label.setText(msg)
         if timeout:
             QTimer.singleShot(timeout, lambda: self.status_label.setText(""))
+
+    def show_launcher_from_tray(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def quit_app(self):
+        self.tray_icon.hide()
+        QApplication.quit()
+
+    def on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.Trigger:
+            self.show_launcher_from_tray()
 
 class ConfigEditor(QWidget):
     def __init__(self, launcher=None):
