@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['launcher.pyw'],
+    ['main.pyw'],
     pathex=[],
     binaries=[],
     datas=[('icons', 'icons'), ('config.json', '.')],

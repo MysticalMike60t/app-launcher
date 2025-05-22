@@ -1,5 +1,7 @@
 # Custom
 wsb-config.wsb
+__pycache__/
+*.pyc
 
 node_modules
 
