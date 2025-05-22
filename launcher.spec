@@ -5,7 +5,7 @@ a = Analysis(
     ['launcher.pyw'],
     pathex=[],
     binaries=[],
-    datas=[('icons/icon.ico', '.'), ('config.json', '.'), ('icons', 'icons')],
+    datas=[('icons', 'icons'), ('config.json', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

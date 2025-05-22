@@ -1,4 +1,8 @@
 @echo off
 
-pyinstaller --noconfirm --windowed --add-data "icons/icon.ico;." --add-data "config.json;." --icon=icons/icon.ico --add-data "icons;icons" launcher.pyw
+pyinstaller launcher.spec
+
+REM Ensure icons folder is in dist\launcher
+xcopy /E /I /Y icons dist\launcher\icons
+
 copy /Y icon.ico dist\launcher\

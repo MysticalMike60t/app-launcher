@@ -1,4 +1,4 @@
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 
 [Setup]
 AppName=App Launcher
@@ -16,7 +16,7 @@ AppUpdatesURL=https://github.com/mysticalmike60t/app-launcher/releases
 
 [Files]
 Source: "dist\launcher\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "dist\launcher\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\launcher\icons\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\App Launcher"; Filename: "{app}\launcher.exe"
