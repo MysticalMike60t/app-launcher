@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=App Launcher
-SetupIconFile=icon.ico
+SetupIconFile=icons/icon.ico
 AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\AppLauncher
 DefaultGroupName=App Launcher

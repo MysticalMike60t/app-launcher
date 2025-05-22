@@ -5,7 +5,7 @@ a = Analysis(
     ['launcher.pyw'],
     pathex=[],
     binaries=[],
-    datas=[('icon.ico', '.'), ('config.json', '.'), ('icons', 'icons')],
+    datas=[('icons/icon.ico', '.'), ('config.json', '.'), ('icons', 'icons')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icon.ico'],
+    icon=['icons\\icon.ico'],
 )
 coll = COLLECT(
     exe,

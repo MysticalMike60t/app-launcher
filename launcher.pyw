@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem, QAbstractItemView, QMessageBox, QInputDialog, QMenu, QStatusBar,
     QSystemTrayIcon
 )
-from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer
+from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer, QSize
 from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction, QPainterPath, QRegion, QPainter, QPen
 
 APP_NAME = "AppLauncher"
@@ -106,9 +106,12 @@ class AppLauncher(QWidget):
         search_layout.addWidget(self.search_bar)
 
         # Config editor button
-        self.config_btn = QPushButton("⚙")
+        settings_icon_path = resource_path("icons/settings.png")  # or "settings.ico"
+        self.config_btn = QPushButton()
+        self.config_btn.setIcon(QIcon(settings_icon_path))
+        self.config_btn.setIconSize(QSize(24, 24))  # Adjust size as needed
         self.config_btn.setFixedSize(32, 32)
-        self.config_btn.setStyleSheet("background: #232323; color: white; border-radius: 8px; font-size: 18px;")
+        self.config_btn.setStyleSheet("background: rgba(0,0,0,0); border-radius: 8px;")
         self.config_btn.setToolTip("Open Config Editor")
         self.config_btn.clicked.connect(self.open_config_editor)
         search_layout.addWidget(self.config_btn)
@@ -145,7 +148,7 @@ class AppLauncher(QWidget):
 
         # Add tray icon
         self.tray_icon = QSystemTrayIcon(self)
-        tray_icon_path = resource_path("icon.ico")
+        tray_icon_path = resource_path("icons/icon.ico")
         print("Tray icon path:", tray_icon_path, "Exists:", os.path.exists(tray_icon_path))
         self.tray_icon.setIcon(QIcon(tray_icon_path) if os.path.exists(tray_icon_path) else self.windowIcon())
         self.tray_icon.setToolTip("App Launcher")
