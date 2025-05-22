@@ -2,9 +2,11 @@
 
 **App Launcher** is a modern, visual application and folder launcher for Windows.
 
+More tailored towards developers, being simple with full control over how it works.
+
 ## How is this different from [Flow Launcher](https://www.flowlauncher.com/)?
 
-While Flow Launcher is primarily a search-based tool, **App Launcher** presents your apps and folders visually—like a customizable, always-on-top folder window. You can organize, launch, and manage your shortcuts with a simple, intuitive interface.
+While Flow Launcher is primarily a search-based tool, **App Launcher** presents your apps in a folder-like view. You can organize, launch, and manage your shortcuts with a simple interface.
 
 ## Features
 
