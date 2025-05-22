@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon
 )
 from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer, QSize
-from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction, QPainterPath, QRegion, QPainter, QPen
+from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction, QPainterPath, QRegion, QPainter, QPen, QCursor
 
 APP_NAME = "AppLauncher"
 APPDATA_PATH = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), APP_NAME)
@@ -129,6 +129,7 @@ class AppLauncher(QWidget):
         self.config_btn.setFixedSize(32, 32)
         self.config_btn.setToolTip("Open Config Editor")
         self.config_btn.clicked.connect(self.open_config_editor)
+        self.config_btn.setCursor(QCursor(Qt.PointingHandCursor))
         search_layout.addWidget(self.config_btn)
 
         # Set stylesheet for hover effect
