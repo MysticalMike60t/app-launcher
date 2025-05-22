@@ -334,19 +334,14 @@ class AppLauncher(QWidget):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        border_color = QColor("#4b4b4b")  # Lighter blue
-        border_width = 1
-        radius = 0
-        rect = self.rect().adjusted(border_width//2, border_width//2, -border_width//2, -border_width//2)
-        # Draw opaque corners to hide blur
-        painter.setBrush(QColor(30, 30, 30, 255))  # Match your palette
+        # Opaque background (matches your palette or acrylic tint)
         painter.setPen(Qt.NoPen)
-        path = QPainterPath()
-        path.addRect(self.rect())
-        path.addRoundedRect(rect, radius, radius)
-        path.setFillRule(Qt.OddEvenFill)
-        painter.drawPath(path)
+        painter.setBrush(QColor(30, 30, 30, 220))  # Use your desired color and alpha
+        painter.drawRect(self.rect())
         # Draw border
+        border_color = QColor("#4b4b4b")  # Your lighter border color
+        border_width = 1
+        rect = self.rect().adjusted(border_width//2, border_width//2, -border_width//2, -border_width//2)
         painter.setPen(QPen(border_color, border_width))
         painter.setBrush(Qt.NoBrush)
         painter.drawRect(rect)
