@@ -1,9 +1,9 @@
 {
-    "apps": [
-        {
-            "name": "Notepad",
-            "command": "notepad.exe",
-            "icon": "icons/notepad.png"
-        }
-    ]
+  "apps": [
+    {
+      "name": "Notepad",
+      "command": "notepad.exe",
+      "icon": "icons/notepad.png"
+    }
+  ]
 }
