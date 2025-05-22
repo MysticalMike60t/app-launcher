@@ -1,3 +1,4 @@
+import shutil
 import sys
 import os
 import json
@@ -11,7 +12,23 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer
 from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication
 
-CONFIG_PATH = "config.json"
+APP_NAME = "AppLauncher"
+APPDATA_PATH = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), APP_NAME)
+if not os.path.exists(APPDATA_PATH):
+    os.makedirs(APPDATA_PATH)
+CONFIG_PATH = os.path.join(APPDATA_PATH, "config.json")
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+if not os.path.exists(CONFIG_PATH):
+    # Copy the default config from the bundled directory
+    default_config = resource_path("config.json")
+    if os.path.exists(default_config):
+        shutil.copy(default_config, CONFIG_PATH)
 
 def load_config():
     if os.path.exists(CONFIG_PATH):

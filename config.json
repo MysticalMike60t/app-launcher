@@ -4,10 +4,6 @@
             "name": "Notepad",
             "command": "notepad.exe",
             "icon": "icons/notepad.png"
-        },
-        {
-            "name": "UWT5",
-            "command": "\"G:\\Applications\\UWT 5.2\\Ultimate Windows Tweaker 5.2.exe\""
         }
     ]
 }
