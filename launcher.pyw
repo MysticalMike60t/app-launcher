@@ -83,13 +83,20 @@ class AppLauncher(QWidget):
 
         # Central widget layout
         central = QWidget()
+        central.setObjectName("centralWidget")
         central_layout = QVBoxLayout(central)
         central_layout.setContentsMargins(15, 10, 15, 10)
         central_layout.setSpacing(10)
         main_layout.addWidget(central, 1)
 
         # Set a solid background for the central widget
-        central.setStyleSheet("background: #232323; border-radius: 12px;")
+        central.setStyleSheet("""
+            QWidget#centralWidget {
+                background: #232323;
+                border-radius: 12px;
+                border: 2px solid rgba(255, 255, 255, 0.08);
+            }
+        """)
 
         # Search bar
         search_layout = QHBoxLayout()
