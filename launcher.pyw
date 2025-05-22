@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon
 )
 from PySide6.QtCore import Qt, QFileSystemWatcher, QEvent, QTimer
-from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction
+from PySide6.QtGui import QPalette, QColor, QFont, QIcon, QGuiApplication, QAction, QPainterPath, QRegion, QPainter, QPen
 
 APP_NAME = "AppLauncher"
 APPDATA_PATH = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), APP_NAME)
@@ -92,9 +92,8 @@ class AppLauncher(QWidget):
         # Set a solid background for the central widget
         central.setStyleSheet("""
             QWidget#centralWidget {
-                background: #232323;
-                border-radius: 12px;
-                border: 2px solid rgba(255, 255, 255, 0.08);
+                background: transparent;
+                border: 1px solid #4b4b4b;
             }
         """)
 
@@ -103,7 +102,7 @@ class AppLauncher(QWidget):
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search apps and folders...")
         self.search_bar.textChanged.connect(self.filter_apps)
-        self.search_bar.setStyleSheet("padding: 6px; border-radius: 8px; background: #232323; color: white;")
+        self.search_bar.setStyleSheet("padding: 6px; border-radius: 8px; background: transparent; color: white;")
         search_layout.addWidget(self.search_bar)
 
         # Config editor button
@@ -122,7 +121,7 @@ class AppLauncher(QWidget):
         self.tree.itemDoubleClicked.connect(self.launch_item)
         self.tree.setStyleSheet("""
             QTreeWidget {
-                background: #232323;
+                background: transparent;
                 color: white;
                 border-radius: 8px;
                 font-size: 14px;
@@ -188,12 +187,12 @@ class AppLauncher(QWidget):
         self.hide()
 
     def setStyle(self):
-        # Modern dark translucent style with blur effect
+        # Modern dark translucent style with acrylic blur effect (Windows 10/11)
         palette = QPalette()
-        palette.setColor(QPalette.Window, QColor(30, 30, 30, 240))
+        palette.setColor(QPalette.Window, QColor(30, 30, 30, 220))
         palette.setColor(QPalette.WindowText, Qt.white)
-        palette.setColor(QPalette.Base, QColor(40, 40, 40, 220))
-        palette.setColor(QPalette.AlternateBase, QColor(35, 35, 35, 200))
+        palette.setColor(QPalette.Base, QColor(40, 40, 40, 200))
+        palette.setColor(QPalette.AlternateBase, QColor(35, 35, 35, 180))
         palette.setColor(QPalette.ToolTipBase, Qt.white)
         palette.setColor(QPalette.ToolTipText, Qt.white)
         palette.setColor(QPalette.Text, Qt.white)
@@ -204,30 +203,43 @@ class AppLauncher(QWidget):
         self.setPalette(palette)
         self.setFont(QFont("Segoe UI", 10))
 
-        # Optional: add blur effect (Windows 10+ only)
+        # Windows 10/11 acrylic blur effect
         try:
+            import ctypes
             from ctypes import windll, byref, sizeof, c_int
-            hwnd = self.winId().__int__()
+
             class ACCENTPOLICY(ctypes.Structure):
-                _fields_ = [("AccentState", c_int),
-                            ("AccentFlags", c_int),
-                            ("GradientColor", c_int),
-                            ("AnimationId", c_int)]
+                _fields_ = [
+                    ("AccentState", c_int),
+                    ("AccentFlags", c_int),
+                    ("GradientColor", c_int),
+                    ("AnimationId", c_int)
+                ]
+
             class WINCOMPATTRDATA(ctypes.Structure):
-                _fields_ = [("Attribute", c_int),
-                            ("Data", ctypes.POINTER(ACCENTPOLICY)),
-                            ("SizeOfData", c_int)]
-            ACCENT_ENABLE_BLURBEHIND = 3
+                _fields_ = [
+                    ("Attribute", c_int),
+                    ("Data", ctypes.POINTER(ACCENTPOLICY)),
+                    ("SizeOfData", c_int)
+                ]
+
+            ACCENT_ENABLE_ACRYLICBLURBEHIND = 4  # Acrylic effect
+            WCA_ACCENT_POLICY = 19
+
+            hwnd = self.winId().__int__()
             accent = ACCENTPOLICY()
-            accent.AccentState = ACCENT_ENABLE_BLURBEHIND
-            accent.GradientColor = 0x99000000  # semi-transparent black
+            accent.AccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND
+            accent.AccentFlags = 2  # Enable window border
+            # GradientColor: 0xAABBGGRR (AA=alpha, BB=blue, GG=green, RR=red)
+            # Example: semi-transparent dark (alpha=0xCC, RGB=0x232323)
+            accent.GradientColor = 0xCC232323
             data = WINCOMPATTRDATA()
-            data.Attribute = 19  # WCA_ACCENT_POLICY
+            data.Attribute = WCA_ACCENT_POLICY
             data.Data = ctypes.pointer(accent)
             data.SizeOfData = sizeof(accent)
             windll.user32.SetWindowCompositionAttribute(hwnd, byref(data))
-        except Exception:
-            pass
+        except Exception as e:
+            print("Acrylic effect failed:", e)
 
     def populate_apps(self):
         self.tree.clear()
@@ -317,6 +329,27 @@ class AppLauncher(QWidget):
     def on_tray_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:
             self.show_launcher_from_tray()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        border_color = QColor("#4b4b4b")  # Lighter blue
+        border_width = 1
+        radius = 0
+        rect = self.rect().adjusted(border_width//2, border_width//2, -border_width//2, -border_width//2)
+        # Draw opaque corners to hide blur
+        painter.setBrush(QColor(30, 30, 30, 255))  # Match your palette
+        painter.setPen(Qt.NoPen)
+        path = QPainterPath()
+        path.addRect(self.rect())
+        path.addRoundedRect(rect, radius, radius)
+        path.setFillRule(Qt.OddEvenFill)
+        painter.drawPath(path)
+        # Draw border
+        painter.setPen(QPen(border_color, border_width))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(rect)
 
 class ConfigEditor(QWidget):
     def __init__(self, launcher=None):
@@ -547,6 +580,7 @@ class ConfigEditor(QWidget):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+        self.clearMask()
 
 def main():
     app = QApplication(sys.argv)
