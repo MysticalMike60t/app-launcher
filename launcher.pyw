@@ -67,6 +67,22 @@ def launch_app(command):
     except Exception as e:
         QMessageBox.warning(None, "Launch Error", f"Failed to launch {command}:\n{e}")
 
+class HoverIconButton(QPushButton):
+    def __init__(self, normal_icon, hover_icon, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.normal_icon = QIcon(normal_icon)
+        self.hover_icon = QIcon(hover_icon)
+        self.setIcon(self.normal_icon)
+        self.setIconSize(QSize(24, 24))
+
+    def enterEvent(self, event):
+        self.setIcon(self.hover_icon)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.setIcon(self.normal_icon)
+        super().leaveEvent(event)
+
 class AppLauncher(QWidget):
     def __init__(self):
         super().__init__()
@@ -106,15 +122,29 @@ class AppLauncher(QWidget):
         search_layout.addWidget(self.search_bar)
 
         # Config editor button
-        settings_icon_path = resource_path("icons/settings.png")  # or "settings.ico"
-        self.config_btn = QPushButton()
-        self.config_btn.setIcon(QIcon(settings_icon_path))
-        self.config_btn.setIconSize(QSize(24, 24))  # Adjust size as needed
+        settings_icon_path = resource_path("icons/settings.png")
+        settings_icon_dark_path = resource_path("icons/settings-dark.png")
+
+        self.config_btn = HoverIconButton(settings_icon_path, settings_icon_dark_path)
         self.config_btn.setFixedSize(32, 32)
-        self.config_btn.setStyleSheet("background: rgba(0,0,0,0); border-radius: 8px;")
         self.config_btn.setToolTip("Open Config Editor")
         self.config_btn.clicked.connect(self.open_config_editor)
         search_layout.addWidget(self.config_btn)
+
+        # Set stylesheet for hover effect
+        settings_icon_path_css = settings_icon_path.replace("\\", "/")
+        settings_icon_dark_path_css = settings_icon_dark_path.replace("\\", "/")
+        self.config_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: rgba(0,0,0,0);
+                border-radius: 8px;
+                border: none;
+                qproperty-icon: url("{settings_icon_path_css}");
+            }}
+            QPushButton:hover {{
+                qproperty-icon: url("{settings_icon_dark_path_css}");
+            }}
+        """)
         central_layout.addLayout(search_layout)
 
         # Tree widget to show folders/apps
