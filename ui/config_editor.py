@@ -69,10 +69,14 @@ class ConfigEditor(QWidget):
         edit_btn = QPushButton("Edit Selected")
         edit_btn.clicked.connect(self.edit_selected)
         btn_layout.addWidget(edit_btn)
+        apply_edit_btn = QPushButton("Apply Edit")
+        apply_edit_btn.clicked.connect(self.apply_edit)
+        btn_layout.addWidget(apply_edit_btn)
         layout.addLayout(btn_layout)
 
         self.config = load_config()
         self.reload_tree()
+        self.editing_item = None
 
     def choose_icon(self):
         path, _ = QFileDialog.getOpenFileName(self, "Choose Icon", "", "Images (*.png *.ico *.jpg *.bmp)")
@@ -266,6 +270,7 @@ class ConfigEditor(QWidget):
         selected = self.tree.currentItem()
         if not selected:
             return
+        self.editing_item = selected
         data = selected.data(0, Qt.UserRole)
         if isinstance(data, dict):
             if "folder" in data:
@@ -276,3 +281,27 @@ class ConfigEditor(QWidget):
                 self.name_edit.setText(data.get("name", ""))
                 self.command_edit.setText(data.get("command", ""))
                 self.icon_edit.setText(data.get("icon", ""))
+
+    def apply_edit(self):
+        if not self.editing_item:
+            return
+        data = self.editing_item.data(0, Qt.UserRole)
+        if isinstance(data, dict):
+            if "folder" in data:
+                new_name = self.name_edit.text().strip()
+                new_icon = self.icon_edit.text().strip()
+                data["folder"] = new_name
+                data["icon"] = new_icon
+                self.editing_item.setText(0, new_name)
+                self.editing_item.setText(2, new_icon)
+            else:
+                new_name = self.name_edit.text().strip()
+                new_command = self.command_edit.text().strip()
+                new_icon = self.icon_edit.text().strip()
+                data["name"] = new_name
+                data["command"] = new_command
+                data["icon"] = new_icon
+                self.editing_item.setText(0, new_name)
+                self.editing_item.setText(1, new_command)
+                self.editing_item.setText(2, new_icon)
+        self.editing_item = None
